@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css"
+        integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog=="
+        crossorigin="anonymous" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <link rel="stylesheet" href="style.css" />
+    <title>App Chat</title>
+</head>
+
+<body>
+    <div id="app" style="width: 416px;">
+        <h1 class="title">App Chat 💬</h1>
+        <!-- Join room -->
+        <div v-if="!joinedRoom" class="join-room d-flex flex-column">
+            <select v-model="selectedRoom" class="form-select" aria-placeholder="Select room">
+                <option v-for="room in rooms" :key="room" :value="room">{{ room }}</option>
+            </select>
+            <input v-model="nameInput" type="text" name="username" class="form-control mt-1 mb-1" placeholder="Please enter name">
+            <button type="submit" class="btn w-25 btn-light" @click="joinRoom()">Join Room</button>
+        </div>
+        <!-- Box chat -->
+        <div v-else class="main">
+            <div class="name">
+                <span class="name-input w-75">{{ selectedRoomName }}</span>
+                <span class="name-input w-25 text-end">{{ clientsTotal }} <i class="far fa-user"></i></span>
+            </div>
+            <ul class="message-container" id="message-container" >
+                
+            </ul>
+
+            <form class="message-form" id="message-form">
+                <input type="text" 
+                    v-model="messageInput" name="message" 
+                    class="message-input" 
+                    ref="messageInputEl"
+                />
+                <div class="v-divider"></div>
+                <button type="submit" class="send-button" @click="senMessage($event)">
+                    send <span><i class="fas fa-paper-plane"></i></span>
+                </button>
+            </form>
+        </div>
+        
+    </div>
+
+    <!-- Include Vue 3 from CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- Include Moment.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script>
+    const {
+        createApp,
+        ref,
+        onMounted
+    } = Vue;
+
+    createApp({
+        setup() {
+            const socket = io()
+            const messageInput = ref('');
+            const clientsTotal = ref(0)
+            const nameInput = ref('')
+            const selectedRoom = ref(null)
+            const selectedRoomName = ref(null)
+            const joinedRoom = ref(false)
+            const socketId = ref(null)
+            const rooms = ref(['Room 1', 'Room 2', 'Room 3'])
+            onMounted(() => {
+                socket.on('connect', () => {
+                    socketId.value = socket.id;
+                });
+            });
+
+            const senMessage = async (e) => {
+                e.preventDefault()
+                if (messageInput.value === '') return
+                const data = {
+                    name: nameInput.value,
+                    message: messageInput.value,
+                    dateTime: new Date(),
+                }
+                socket.emit('chat-message', data)
+                addMessageToUI(true, data)
+                messageInput.value = ''
+            }
+
+            const addMessageToUI = (isOwnMessage, data) => {
+                const element = `
+                    <li class="${isOwnMessage ? 'message-right' : 'message-left'}">
+                        <p class="message">
+                            ${data.message}
+                            <span>${data.name} ● ${moment(data.dateTime).fromNow()}</span>
+                        </p>
+                    </li>`;
+                const messageContainer = document.getElementById('message-container')
+                messageContainer.innerHTML += element
+            }
+
+            socket.on('chat-message', (data) => {
+                if (socketId.value != data.sender) {
+                    addMessageToUI(false, data)
+                }
+            })
+            socket.on('clients-total', (value) => {
+                clientsTotal.value = value
+            })
+
+            const joinRoom = () => {
+                joinedRoom.value = true
+                selectedRoomName.value = selectedRoom.value
+                socket.emit('joinRoom', selectedRoom.value);
+            }
+
+            // Return the reactive references and methods
+            return {
+                messageInput,clientsTotal, rooms, 
+                selectedRoom,joinedRoom,selectedRoomName,socketId,nameInput,
+                senMessage, joinRoom
+            };
+        }
+    }).mount('#app');
+    </script>
+</body>
+
+</html>

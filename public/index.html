@@ -17,25 +17,23 @@
         <h1 class="title">App Chat 💬</h1>
         <!-- Join room -->
         <div v-if="!joinedRoom" class="join-room d-flex flex-column">
-            <select v-model="selectedRoom" class="form-select" aria-placeholder="Select room">
+            <select v-model="selectedRoom" class="form-select">
                 <option v-for="room in rooms" :key="room" :value="room">{{ room }}</option>
             </select>
-            <input v-model="nameInput" type="text" name="username" class="form-control mt-1 mb-1" placeholder="Please enter name">
+            <input v-model="nameInput" type="text" class="form-control mt-1 mb-1" placeholder="Please enter name">
             <button type="submit" class="btn w-25 btn-light" @click="joinRoom()">Join Room</button>
         </div>
         <!-- Box chat -->
         <div v-else class="main">
             <div class="name">
-                <span class="name-input w-75">{{ selectedRoomName }}</span>
+                <span class="name-input w-75">{{ selectedRoom }}</span>
                 <span class="name-input w-25 text-end">{{ clientsTotal }} <i class="far fa-user"></i></span>
             </div>
             <ul class="message-container" id="message-container" >
-                
             </ul>
-
             <form class="message-form" id="message-form">
                 <input type="text" 
-                    v-model="messageInput" name="message" 
+                    v-model="messageInput"
                     class="message-input" 
                     ref="messageInputEl"
                 />
@@ -51,8 +49,6 @@
     <!-- Include Vue 3 from CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <!-- Include Moment.js from CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <script>
     const {
         createApp,
@@ -67,7 +63,6 @@
             const clientsTotal = ref(0)
             const nameInput = ref('')
             const selectedRoom = ref(null)
-            const selectedRoomName = ref(null)
             const joinedRoom = ref(false)
             const socketId = ref(null)
             const rooms = ref(['Room 1', 'Room 2', 'Room 3'])
@@ -113,19 +108,16 @@
 
             const joinRoom = () => {
                 joinedRoom.value = true
-                selectedRoomName.value = selectedRoom.value
                 socket.emit('joinRoom', selectedRoom.value);
             }
 
-            // Return the reactive references and methods
             return {
                 messageInput,clientsTotal, rooms, 
-                selectedRoom,joinedRoom,selectedRoomName,socketId,nameInput,
+                selectedRoom,joinedRoom,nameInput,
                 senMessage, joinRoom
             };
         }
     }).mount('#app');
     </script>
 </body>
-
 </html>
